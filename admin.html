@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Store admin — Sarahs' Fragrance</title>
+    <meta name="description" content="Update stock, prices and new listings for Sarahs' Fragrance." />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#fbf4ee" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var saved = localStorage.getItem("sf.theme");
+          var dark = saved
+            ? saved === "dark"
+            : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        } catch (err) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Jost:wght@300..600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23fbf4ee'/%3E%3Ccircle cx='24' cy='24' r='11' fill='%23f4dde5' stroke='%23b9567a'/%3E%3Ccircle cx='24' cy='24' r='5' fill='%235f8a6c'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header__inner">
+        <a class="brand" href="index.html" aria-label="Sarahs' Fragrance — home">
+          <svg class="brand__mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <g fill="var(--rose-soft)" stroke="var(--blossom)" stroke-opacity="0.5" stroke-width="1">
+              <circle cx="24" cy="14.5" r="8" />
+              <circle cx="33.6" cy="21.5" r="8" />
+              <circle cx="30" cy="32.6" r="8" />
+              <circle cx="18" cy="32.6" r="8" />
+              <circle cx="14.4" cy="21.5" r="8" />
+            </g>
+            <circle cx="24" cy="24" r="5" fill="var(--sage)" />
+            <circle cx="24" cy="24" r="2" fill="var(--cream)" />
+          </svg>
+          <span class="brand__text">
+            <span class="brand__name">Sarahs' Fragrance</span>
+            <span class="brand__sub">Studio</span>
+          </span>
+        </a>
+
+        <div class="header__tools">
+          <a class="btn btn--ghost btn--sm hide-sm" href="index.html">
+            View store
+            <svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+          </a>
+          <button
+            class="icon-btn theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Switch to dark mode"
+          >
+            <svg class="icon icon-moon" aria-hidden="true"><use href="#i-moon"></use></svg>
+            <svg class="icon icon-sun" aria-hidden="true"><use href="#i-sun"></use></svg>
+          </button>
+          <button class="btn btn--outline btn--sm" id="signOutBtn" type="button" hidden>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <div class="wrap">
+        <section class="login-view" id="loginView">
+          <div class="login-card">
+            <p class="eyebrow">Sarahs' Studio</p>
+            <h1>Welcome back</h1>
+            <p>Sign in to update stock, prices and new listings.</p>
+
+            <form id="loginForm" novalidate>
+              <div class="field" id="emailField">
+                <label for="adminEmail">Email</label>
+                <input
+                  id="adminEmail"
+                  type="email"
+                  autocomplete="username"
+                  placeholder="you@example.com"
+                  spellcheck="false"
+                />
+              </div>
+              <div class="field">
+                <label for="adminPassword" id="passwordLabel">Password</label>
+                <input
+                  id="adminPassword"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+              <button class="btn btn--primary btn--block" type="submit" id="loginBtn">
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-lock"></use></svg>
+                Sign in
+              </button>
+              <div class="form-error" id="loginError" hidden></div>
+            </form>
+
+            <p class="login-hint" id="loginHint" hidden></p>
+          </div>
+        </section>
+
+        <section id="dashboard" hidden>
+          <div class="admin-head">
+            <div>
+              <p class="eyebrow">Store admin</p>
+              <h1>Inventory</h1>
+            </div>
+            <div class="admin-head__actions">
+              <button class="btn btn--primary" id="newBtn" type="button">
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-plus"></use></svg>
+                New listing
+              </button>
+            </div>
+          </div>
+
+          <div class="demo-banner" id="demoBanner" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+            <div>
+              <strong>Demo mode.</strong> Listings are saved in this browser only. Add your
+              <code>supabaseUrl</code> and <code>supabaseAnonKey</code> in <code>js/config.js</code>
+              to share stock with customers on every device.
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <p class="stat__label">Listings</p>
+              <p class="stat__value" id="statListings">0</p>
+            </div>
+            <div class="stat">
+              <p class="stat__label">Units in stock</p>
+              <p class="stat__value" id="statUnits">0</p>
+            </div>
+            <div class="stat">
+              <p class="stat__label">Low stock</p>
+              <p class="stat__value" id="statLow">0 <small>5 or fewer</small></p>
+            </div>
+            <div class="stat">
+              <p class="stat__label">Sold out</p>
+              <p class="stat__value" id="statOut">0</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__head">
+              <h2>Your listings</h2>
+              <label class="search">
+                <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+                <span class="visually-hidden">Search listings</span>
+                <input type="search" id="searchInput" placeholder="Search name or category" />
+              </label>
+              <span class="panel__count" id="listCount"></span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Product</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Stock</th>
+                    <th scope="col">Live</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="productsBody"></tbody>
+              </table>
+            </div>
+
+            <div class="empty" id="tableEmpty" hidden></div>
+          </div>
+
+          <div class="admin-foot">
+            <span>Signed in as <strong id="adminName">—</strong></span>
+            <a href="index.html">Back to store</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Listing form -->
+    <div class="modal-layer" id="productLayer" hidden>
+      <div class="scrim" data-close-product></div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="productTitle">
+        <div class="modal__head">
+          <div>
+            <p class="eyebrow">Listing</p>
+            <h2 id="productTitle">New listing</h2>
+          </div>
+          <button class="icon-btn icon-btn--sm" type="button" data-close-product aria-label="Close listing form">
+            <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <div class="modal__body">
+          <form id="productForm" class="form-grid">
+            <input type="hidden" id="productId" />
+            <div class="field">
+              <label for="pName">Name <span class="req">*</span></label>
+              <input
+                id="pName"
+                name="name"
+                type="text"
+                required
+                maxlength="80"
+                placeholder="e.g. Jasmine Reed Diffuser"
+                data-autofocus
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="pCategory">Category <span class="req">*</span></label>
+                <input
+                  id="pCategory"
+                  name="category"
+                  type="text"
+                  required
+                  maxlength="40"
+                  list="categoryOptions"
+                  placeholder="Diffusers"
+                />
+                <datalist id="categoryOptions">
+                  <option value="Diffusers"></option>
+                  <option value="Sprays"></option>
+                  <option value="Essence oils"></option>
+                  <option value="Gift sets"></option>
+                </datalist>
+              </div>
+              <div class="field">
+                <label for="pPrice">Price (GH₵) <span class="req">*</span></label>
+                <input
+                  id="pPrice"
+                  name="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputmode="decimal"
+                  required
+                  placeholder="120"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="pStock">Stock <span class="req">*</span></label>
+                <input
+                  id="pStock"
+                  name="stock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  required
+                  placeholder="10"
+                />
+              </div>
+              <div class="field">
+                <span class="label">Shop status</span>
+                <label class="checkline" for="pActive">
+                  <input type="checkbox" id="pActive" name="active" checked />
+                  <span>Visible to customers</span>
+                </label>
+                <p class="hint">Hidden listings stay here but leave the shop.</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="pImage">Image URL</label>
+              <input id="pImage" name="image_url" type="text" placeholder="assets/reed-diffuser.png" spellcheck="false" />
+              <div class="thumb-preview">
+                <div class="thumb-preview__img" id="imagePreviewFrame"></div>
+                <p id="imagePreviewNote">Paste an image link. Leave empty to use the soft placeholder.</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="pDesc">Description</label>
+              <textarea
+                id="pDesc"
+                name="description"
+                maxlength="240"
+                placeholder="A short note about the scent, size or how long it lasts."
+              ></textarea>
+            </div>
+
+            <div class="form-error" id="productError" hidden></div>
+
+            <div class="admin-form-actions">
+              <button class="btn btn--ghost" type="button" data-close-product>Cancel</button>
+              <button class="btn btn--primary" type="submit" id="saveProductBtn">Save listing</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete confirmation -->
+    <div class="modal-layer" id="confirmLayer" hidden>
+      <div class="scrim" data-close-confirm></div>
+      <div class="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal__head">
+          <div>
+            <p class="eyebrow">Please confirm</p>
+            <h2 id="confirmTitle">Remove listing?</h2>
+          </div>
+          <button class="icon-btn icon-btn--sm" type="button" data-close-confirm aria-label="Cancel">
+            <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__note" id="confirmText"></p>
+          <div class="admin-form-actions">
+            <button class="btn btn--ghost" type="button" data-close-confirm>Cancel</button>
+            <button class="btn btn--primary" type="button" id="confirmDeleteBtn">Remove listing</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
+</html>

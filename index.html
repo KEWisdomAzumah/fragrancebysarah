@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sarahs' Fragrance — diffusers &amp; essence for homes and offices</title>
+    <meta
+      name="description"
+      content="Reed diffusers, room sprays and essence oils for homes and offices at friendly prices. Choose your scents and order on WhatsApp."
+    />
+    <meta name="theme-color" content="#fbf4ee" />
+    <script>
+      (function () {
+        document.documentElement.classList.add("js");
+        try {
+          var saved = localStorage.getItem("sf.theme");
+          var dark = saved
+            ? saved === "dark"
+            : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        } catch (err) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Jost:wght@300..600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23fbf4ee'/%3E%3Ccircle cx='24' cy='24' r='11' fill='%23f4dde5' stroke='%23b9567a'/%3E%3Ccircle cx='24' cy='24' r='5' fill='%235f8a6c'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#shop">Skip to products</a>
+
+    <header class="site-header">
+      <div class="wrap header__inner">
+        <a class="brand" href="index.html" aria-label="Sarahs' Fragrance — home">
+          <svg class="brand__mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <g fill="var(--rose-soft)" stroke="var(--blossom)" stroke-opacity="0.5" stroke-width="1">
+              <circle cx="24" cy="14.5" r="8" />
+              <circle cx="33.6" cy="21.5" r="8" />
+              <circle cx="30" cy="32.6" r="8" />
+              <circle cx="18" cy="32.6" r="8" />
+              <circle cx="14.4" cy="21.5" r="8" />
+            </g>
+            <circle cx="24" cy="24" r="5" fill="var(--sage)" />
+            <circle cx="24" cy="24" r="2" fill="var(--cream)" />
+          </svg>
+          <span class="brand__text">
+            <span class="brand__name">Sarahs' Fragrance</span>
+            <span class="brand__sub">Home &amp; Office</span>
+          </span>
+        </a>
+
+        <nav class="nav" aria-label="Main">
+          <a href="#shop">Shop</a>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <div class="header__tools">
+          <button
+            class="icon-btn"
+            id="cartBtn"
+            type="button"
+            aria-label="Open order bag"
+            aria-haspopup="dialog"
+            aria-controls="cartLayer"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-bag"></use></svg>
+            <span class="cart-badge" id="cartCount" aria-hidden="true">0</span>
+          </button>
+          <button
+            class="icon-btn theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Switch to dark mode"
+          >
+            <svg class="icon icon-moon" aria-hidden="true"><use href="#i-moon"></use></svg>
+            <svg class="icon icon-sun" aria-hidden="true"><use href="#i-sun"></use></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="wrap hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow">Diffusers &amp; essence for home and office</p>
+            <h1 class="hero__title">Spring, <em>poured</em> into every room.</h1>
+            <p class="hero__lede">
+              Sarahs' Fragrance blends reed diffusers, room sprays and essence oils that keep your
+              home and workspace softly scented — without the boutique price tag.
+            </p>
+            <div class="hero__cta">
+              <a class="btn btn--primary" href="#shop">
+                Shop the collection
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+              </a>
+              <a
+                class="btn btn--outline"
+                href="#contact"
+                data-wa-link="Hi Sarah, I'd like help choosing a diffuser."
+                target="_blank"
+                rel="noopener"
+              >
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chat"></use></svg>
+                Ask on WhatsApp
+              </a>
+            </div>
+            <ul class="hero__meta">
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg> Order in a few taps</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg> Payment confirmed on WhatsApp</li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg> Homes &amp; offices</li>
+            </ul>
+          </div>
+
+          <div class="hero__media">
+            <div class="hero__frame">
+              <img
+                src="assets/hero.png"
+                alt="Sage ceramic diffuser with blush ranunculus and an essence oil bottle"
+                width="1024"
+                height="1280"
+                fetchpriority="high"
+              />
+            </div>
+            <div class="hero__note">
+              <svg class="icon" aria-hidden="true"><use href="#i-spark"></use></svg>
+              <div>
+                <strong>Loved in homes &amp; offices</strong>
+                <span>Affordable, long-lasting scents</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="values" aria-label="How ordering works">
+        <div class="wrap">
+          <div class="values__grid">
+            <div class="value">
+              <span class="value__icon"><svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg></span>
+              <div>
+                <h3>Order in a minute</h3>
+                <p>Choose your scents and send your list straight to WhatsApp — no accounts, no card forms.</p>
+              </div>
+            </div>
+            <div class="value">
+              <span class="value__icon"><svg class="icon" aria-hidden="true"><use href="#i-tag"></use></svg></span>
+              <div>
+                <h3>Friendly prices</h3>
+                <p>Diffusers, sprays and oils priced for everyday homes and offices.</p>
+              </div>
+            </div>
+            <div class="value">
+              <span class="value__icon"><svg class="icon" aria-hidden="true"><use href="#i-clock"></use></svg></span>
+              <div>
+                <h3>Made to linger</h3>
+                <p>Slow-release blends that keep a room fresh for weeks, not hours.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="shop">
+        <div class="wrap">
+          <div class="section__head reveal">
+            <div>
+              <p class="eyebrow">The collection</p>
+              <h2>Pick your spring scent</h2>
+            </div>
+            <p>
+              Prices are in Ghana cedis. Choose a quantity, add it to your bag, then confirm your
+              order on WhatsApp.
+            </p>
+          </div>
+
+          <div class="filters" id="filters" role="group" aria-label="Filter products by category"></div>
+
+          <div class="products" id="productsGrid" aria-busy="true"></div>
+
+          <div class="empty" id="shopEmpty" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#i-spark"></use></svg>
+            <h3>Nothing here yet</h3>
+            <p>New scents are on the way. Check back shortly, or message Sarah on WhatsApp.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="about">
+        <div class="wrap about">
+          <div class="about__grid">
+            <div class="reveal">
+              <p class="eyebrow">About Sarahs'</p>
+              <h2>A small studio with a soft spot for beautiful-smelling rooms.</h2>
+              <p>
+                Sarahs' Fragrance started with one idea: a home that smells lovely shouldn't cost a
+                fortune. So we put together reed diffusers, room sprays and essence oils for living
+                rooms, bedrooms, offices and all the little corners in between.
+              </p>
+              <p>
+                Every order is handled personally. Pick what you like, send your list on WhatsApp,
+                and Sarah confirms payment, delivery and anything else in the same chat.
+              </p>
+              <div class="about__sig">
+                <svg class="brand__mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                  <g fill="var(--rose-soft)" stroke="var(--blossom)" stroke-opacity="0.5">
+                    <circle cx="24" cy="14.5" r="8" />
+                    <circle cx="33.6" cy="21.5" r="8" />
+                    <circle cx="30" cy="32.6" r="8" />
+                    <circle cx="18" cy="32.6" r="8" />
+                    <circle cx="14.4" cy="21.5" r="8" />
+                  </g>
+                  <circle cx="24" cy="24" r="5" fill="var(--sage)" />
+                </svg>
+                <div>
+                  <strong>Sarah</strong>
+                  <span>Founder, Sarahs' Fragrance</span>
+                </div>
+              </div>
+            </div>
+            <figure class="quote reveal">
+              <blockquote>A fresh room changes how the whole day feels.</blockquote>
+              <figcaption>Our little rule of thumb</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="contact">
+        <div class="wrap">
+          <div class="callout reveal">
+            <div>
+              <p class="eyebrow">Ready when you are</p>
+              <h2>Send your list, we'll confirm the rest.</h2>
+              <p>
+                Payment, delivery and any questions are handled directly on WhatsApp. Tell us where
+                you are and we'll agree on delivery in the chat.
+              </p>
+            </div>
+            <div class="callout__actions">
+              <a
+                class="btn btn--primary"
+                href="#"
+                data-wa-link="Hi Sarah, I'd like to place an order."
+                target="_blank"
+                rel="noopener"
+              >
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chat"></use></svg>
+                Chat with Sarah
+              </a>
+              <a class="btn btn--outline" href="#shop">Back to the shop</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer__grid">
+          <div class="footer__brand">
+            <a class="brand" href="index.html">
+              <svg class="brand__mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                <g fill="var(--rose-soft)" stroke="var(--blossom)" stroke-opacity="0.5">
+                  <circle cx="24" cy="14.5" r="8" />
+                  <circle cx="33.6" cy="21.5" r="8" />
+                  <circle cx="30" cy="32.6" r="8" />
+                  <circle cx="18" cy="32.6" r="8" />
+                  <circle cx="14.4" cy="21.5" r="8" />
+                </g>
+                <circle cx="24" cy="24" r="5" fill="var(--sage)" />
+              </svg>
+              <span class="brand__text">
+                <span class="brand__name">Sarahs' Fragrance</span>
+                <span class="brand__sub">Home &amp; Office</span>
+              </span>
+            </a>
+            <p>
+              Diffusers and essence oils for homes and offices, at friendly prices. Blended in small
+              batches and sent with care.
+            </p>
+          </div>
+          <div class="footer__col">
+            <h3>Shop</h3>
+            <ul>
+              <li><a href="#shop">All products</a></li>
+              <li><a href="#about">About us</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </div>
+          <div class="footer__col">
+            <h3>Order</h3>
+            <ul>
+              <li>
+                <a href="#" data-wa-link="Hi Sarah, I'd like to place an order." target="_blank" rel="noopener">
+                  Message on WhatsApp
+                </a>
+              </li>
+              <li><a href="admin.html">Store admin</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer__bottom">
+          <span>© <span id="year">2026</span> Sarahs' Fragrance. All rights reserved.</span>
+          <span>Made for homes &amp; offices</span>
+          <span class="footer__credit">
+            Built by
+            <a
+              href="https://wa.me/233507007324"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chat with Kwame Elorm on WhatsApp"
+            >
+              <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chat"></use></svg>
+              Kwame Elorm
+            </a>
+          </span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Order bag -->
+    <div class="cart-layer" id="cartLayer" hidden>
+      <div class="scrim" data-close-cart></div>
+      <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+        <div class="drawer__head">
+          <div>
+            <h2 class="drawer__title" id="cartTitle">Your order</h2>
+            <p class="drawer__sub" id="cartSub">Nothing added yet</p>
+          </div>
+          <button class="icon-btn icon-btn--sm" type="button" data-close-cart aria-label="Close order bag">
+            <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <div class="drawer__body" id="cartBody"></div>
+        <div class="drawer__foot" id="cartFoot" hidden>
+          <div class="totals">
+            <span>Subtotal</span>
+            <strong id="cartTotal">GH₵ 0.00</strong>
+          </div>
+          <p class="totals-note">Delivery and payment are confirmed on WhatsApp.</p>
+          <button class="btn btn--primary btn--block" id="confirmOrderBtn" type="button">
+            Confirm order
+            <svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+          </button>
+          <p class="form-note">You'll add your name and delivery area next.</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Order confirmation -->
+    <div class="modal-layer" id="orderLayer" hidden>
+      <div class="scrim" data-close-order></div>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="orderTitle">
+        <div class="modal__head">
+          <div>
+            <p class="eyebrow">Checkout</p>
+            <h2 id="orderTitle">Confirm your order</h2>
+          </div>
+          <button
+            class="icon-btn icon-btn--sm modal__close"
+            type="button"
+            data-close-order
+            aria-label="Close checkout"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__note">
+            Check the details below, add your delivery info, then send everything to Sarah on
+            WhatsApp. Payment is confirmed in the chat.
+          </p>
+
+          <div class="order-list" id="orderSummary" aria-live="polite"></div>
+
+          <form id="orderForm" class="form-grid" autocomplete="on">
+            <div class="form-row">
+              <div class="field">
+                <label for="customerName">Your name <span class="req">*</span></label>
+                <input
+                  id="customerName"
+                  name="name"
+                  type="text"
+                  required
+                  minlength="2"
+                  maxlength="60"
+                  autocomplete="name"
+                  placeholder="Ama Mensah"
+                  data-autofocus
+                />
+              </div>
+              <div class="field">
+                <label for="customerPhone">Phone / WhatsApp <span class="req">*</span></label>
+                <input
+                  id="customerPhone"
+                  name="phone"
+                  type="tel"
+                  required
+                  pattern="[0-9+()\s-]{7,20}"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  placeholder="024 123 4567"
+                  title="Enter a phone number with 7 to 20 digits"
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label for="customerArea">Delivery area / landmark <span class="req">*</span></label>
+              <input
+                id="customerArea"
+                name="area"
+                type="text"
+                required
+                maxlength="80"
+                placeholder="e.g. East Legon, near A&amp;C Mall"
+              />
+            </div>
+            <div class="field">
+              <label for="customerNote">Note for Sarah <span class="muted">(optional)</span></label>
+              <textarea
+                id="customerNote"
+                name="note"
+                maxlength="300"
+                placeholder="Gift wrapping, best delivery time, anything else?"
+              ></textarea>
+            </div>
+            <div class="form-error" id="orderError" hidden></div>
+            <button type="submit" class="btn btn--primary btn--block" id="sendOrderBtn">
+              <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chat"></use></svg>
+              Send order on WhatsApp
+            </button>
+            <p class="form-note">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              Nothing is charged here — Sarah confirms payment and delivery with you on WhatsApp.
+            </p>
+          </form>
+
+          <div class="done" id="orderDone" hidden>
+            <div class="done__mark"><svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></div>
+            <h3>Order ready to send</h3>
+            <p>
+              WhatsApp should now be open with your order. Press <strong>Send</strong> in the chat so
+              Sarah receives it, and she'll confirm payment and delivery there.
+            </p>
+            <span class="done__ref" id="doneRef"></span>
+            <div class="done__actions">
+              <a class="btn btn--primary" id="doneLink" href="#" target="_blank" rel="noopener">
+                <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chat"></use></svg>
+                Open WhatsApp again
+              </a>
+              <button class="btn btn--ghost" type="button" data-close-order>Back to the shop</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/shop.js"></script>
+  </body>
+</html>
