@@ -212,6 +212,37 @@
             <div class="empty" id="tableEmpty" hidden></div>
           </div>
 
+          <div class="panel log-panel">
+            <div class="panel__head">
+              <div class="panel__title">
+                <h2>System log</h2>
+                <p class="panel__sub">
+                  Technical details of anything that went wrong, saved with the reference code the
+                  shopper sees. Stored in Supabase when connected, in this browser in demo mode.
+                </p>
+              </div>
+              <button class="btn btn--ghost btn--sm" type="button" id="logRefreshBtn">Refresh</button>
+              <span class="panel__count" id="logCount"></span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table log-table">
+                <thead>
+                  <tr>
+                    <th scope="col">When</th>
+                    <th scope="col">Reference</th>
+                    <th scope="col">Where</th>
+                    <th scope="col">Message</th>
+                    <th scope="col"><span class="visually-hidden">Details</span></th>
+                  </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+              </table>
+            </div>
+
+            <div class="empty" id="logEmpty" hidden></div>
+          </div>
+
           <div class="admin-foot">
             <span>Signed in as <strong id="adminName">—</strong></span>
             <a href="index.html">Back to store</a>

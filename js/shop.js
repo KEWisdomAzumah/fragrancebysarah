@@ -359,7 +359,9 @@
         subtotal: subtotalIn(lines),
       })
       .catch((err) => {
-        console.warn("[Sarahs' Fragrance] Order wasn't saved to the admin dashboard:", err);
+        /* The WhatsApp message is what Sarah works from; a failed dashboard
+           copy is logged with a reference and never shown to the customer. */
+        store.problem("shop.checkout", err, { audience: "shop" });
       });
   }
 
@@ -569,15 +571,17 @@
       refreshBadge();
       observeReveals();
     } catch (err) {
+      const problem = store.problem("shop.catalogue", err, { audience: "shop" });
       els.grid.innerHTML = "";
       els.grid.removeAttribute("aria-busy");
       els.filters.hidden = true;
       els.empty.hidden = false;
       els.empty.innerHTML = `
         <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
-        <h3>Couldn't load the collection</h3>
-        <p>${esc(store.errorMessage(err))}</p>
-        <button class="btn btn--outline btn--sm" type="button" id="retryBtn">Try again</button>`;
+        <h3>We couldn't open the shop</h3>
+        <p>${esc(problem.message)}</p>
+        <button class="btn btn--outline btn--sm" type="button" id="retryBtn">Try again</button>
+        <p class="err-ref">Reference <strong>${esc(problem.code)}</strong> — quote it if you message Sarah.</p>`;
       const retry = document.getElementById("retryBtn");
       if (retry) {
         retry.addEventListener("click", () => {

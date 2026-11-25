@@ -9,8 +9,12 @@
  *    b. Open the SQL Editor, paste `supabase/schema.sql`, run it.
  *    c. Authentication → Users → Add user (email + password, auto-confirm).
  *      Turn off public sign-ups under Authentication → Sign In / Providers.
- *    d. Project Settings → API: copy the Project URL and the `anon` public key
- *      into `supabaseUrl` and `supabaseAnonKey` below.
+ *    d. In the SQL Editor, allow that same email into the dashboard:
+ *         insert into public.admins (email) values ('you@example.com');
+ *      Only emails in `public.admins` can read orders or change the shop.
+ *    e. Project Settings → API: copy the Project URL and the public key
+ *      (`anon` or `sb_publishable_…`) into `supabaseUrl` and
+ *      `supabaseAnonKey` below.
  *    Both pages switch to live mode on reload.
  *
  * 3. Until step 2 is done the site runs in demo mode, saved in this browser
@@ -22,14 +26,14 @@ window.SF_CONFIG = {
   currency: "GH₵",
 
   /* Orders are sent to this WhatsApp number. */
-  whatsappNumber: "",
+  whatsappNumber: "233507007324",
 
   /* Pre-filled first message for the "Chat on WhatsApp" buttons. */
-  whatsappGreeting: "Hi Sarah, I'd like to ask about your diffusers.",
+  whatsappGreeting: "Hi Sarah, I'd like to order these:",
 
   /* Leave both empty for demo mode. */
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  supabaseUrl: "https://ublnleooepasrgsfhpni.supabase.co",
+  supabaseAnonKey: "sb_publishable_PGqFkMc3-e1epGB99uainw_Lhtl4YTl",
 
   /* Used only in demo mode, when Supabase is not connected yet. */
   demoAdminPassword: "spring2026",

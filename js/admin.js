@@ -16,7 +16,9 @@
     pendingDelete: null,
     search: "",
     orderFilter: "all",
-    ordersError: "",
+    ordersProblem: null,
+    log: [],
+    logProblem: null,
     stockTimers: new Map(),
   };
 
@@ -160,6 +162,23 @@
     return "New";
   }
 
+  /* Plain sentence for everyone, technical detail folded away for the admin. */
+  function problemHTML(problem) {
+    const date = new Date(problem.when);
+    const when = Number.isNaN(date.getTime()) ? problem.when : orderDate.format(date);
+    return `
+      <p>${esc(problem.message)}</p>
+      <details class="err-detail">
+        <summary>Technical details</summary>
+        <dl>
+          <div><dt>Reference</dt><dd><code>${esc(problem.code)}</code></dd></div>
+          <div><dt>What happened</dt><dd>${esc(problem.detail)}</dd></div>
+          <div><dt>When</dt><dd>${esc(when)}</dd></div>
+        </dl>
+        <p class="err-detail__note">Also saved in the system log below.</p>
+      </details>`;
+  }
+
   function orderCardHTML(order) {
     const items = order.items
       .map(
@@ -220,13 +239,13 @@
       el.textContent = String(counts[el.dataset.orderCount] || 0);
     });
 
-    if (state.ordersError) {
+    if (state.ordersProblem) {
       els.ordersList.innerHTML = "";
       els.ordersEmpty.hidden = false;
       els.ordersEmpty.innerHTML = `
         <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
-        <h3>Couldn't load orders</h3>
-        <p>${esc(state.ordersError)}</p>
+        <h3>We couldn't load the orders</h3>
+        ${problemHTML(state.ordersProblem)}
         <button class="btn btn--outline btn--sm" type="button" id="ordersRetryBtn">Try again</button>`;
       const retry = document.getElementById("ordersRetryBtn");
       if (retry) retry.addEventListener("click", loadOrders);
@@ -270,16 +289,100 @@
   }
 
   async function loadOrders() {
-    state.ordersError = "";
+    state.ordersProblem = null;
     els.ordersEmpty.hidden = true;
     els.ordersList.innerHTML = '<p class="orders-loading">Loading orders…</p>';
     try {
       state.orders = await store.listOrders();
     } catch (err) {
       state.orders = [];
-      state.ordersError = store.errorMessage(err);
+      state.ordersProblem = store.problem("admin.orders", err, {
+        message: "We couldn't load the orders just now. Please try again.",
+      });
     }
     renderOrders();
+  }
+
+  /* ---------- System log ---------- */
+  const AREA_LABELS = {
+    "shop.catalogue": "Shop · catalogue",
+    "shop.checkout": "Shop · checkout save",
+    "admin.orders": "Admin · orders",
+    "admin.listings": "Admin · listings",
+    "admin.order_status": "Admin · order status",
+    "admin.stock": "Admin · stock",
+    "admin.listing_save": "Admin · listing form",
+    "admin.listing_delete": "Admin · remove listing",
+    "admin.listing_visibility": "Admin · visibility",
+    "admin.sign_in": "Admin · sign in",
+    "admin.sign_out": "Admin · sign out",
+    "admin.access": "Admin · access check",
+    "admin.log": "Admin · system log",
+  };
+
+  function logRowHTML(entry) {
+    const date = new Date(entry.created_at);
+    const when = Number.isNaN(date.getTime()) ? entry.created_at : orderDate.format(date);
+    const detail = JSON.stringify(entry.details || {}, null, 2);
+    const flagged = entry.details && entry.details.security;
+    return `
+      <tr>
+        <td data-label="When">${esc(when)}</td>
+        <td data-label="Reference"><code>${esc(entry.code)}</code></td>
+        <td data-label="Where">${esc(AREA_LABELS[entry.area] || entry.area)}${
+      flagged ? ' <span class="log-flag">Access</span>' : ""
+    }</td>
+        <td data-label="Message" class="log-msg">${esc(entry.message)}</td>
+        <td data-label="Details">
+          <details class="log-detail"><summary>View</summary><pre>${esc(detail)}</pre></details>
+        </td>
+      </tr>`;
+  }
+
+  function renderLogs() {
+    if (state.logProblem) {
+      els.logBody.innerHTML = "";
+      els.logEmpty.hidden = false;
+      els.logEmpty.innerHTML = `
+        <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+        <h3>We couldn't open the system log</h3>
+        ${problemHTML(state.logProblem)}
+        <button class="btn btn--outline btn--sm" type="button" id="logRetryBtn">Try again</button>`;
+      const retry = document.getElementById("logRetryBtn");
+      if (retry) retry.addEventListener("click", loadLogs);
+      els.logCount.textContent = "";
+      return;
+    }
+
+    if (!state.log.length) {
+      els.logBody.innerHTML = "";
+      els.logEmpty.hidden = false;
+      els.logEmpty.innerHTML = `
+        <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+        <h3>Nothing logged</h3>
+        <p>If anything goes wrong, the details are saved here with the reference shown to the shopper.</p>`;
+      els.logCount.textContent = "";
+      return;
+    }
+
+    els.logEmpty.hidden = true;
+    els.logBody.innerHTML = state.log.map(logRowHTML).join("");
+    els.logCount.textContent = `${state.log.length} entr${state.log.length === 1 ? "y" : "ies"}`;
+  }
+
+  async function loadLogs() {
+    state.logProblem = null;
+    els.logEmpty.hidden = true;
+    els.logBody.innerHTML = '<tr><td class="table-message" colspan="5">Loading log…</td></tr>';
+    try {
+      state.log = await store.listErrorLogs(50);
+    } catch (err) {
+      state.log = [];
+      state.logProblem = store.problem("admin.log", err, {
+        message: "We couldn't open the system log just now. Please try again.",
+      });
+    }
+    renderLogs();
   }
 
   async function onOrderStatusChange(event) {
@@ -303,7 +406,10 @@
       select.value = previous;
       select.disabled = false;
       card.classList.remove("is-saving");
-      toast(store.errorMessage(err), { type: "error" });
+      const problem = store.problem("admin.order_status", err, {
+        message: "The status didn't save. Please try again.",
+      });
+      toast(problem.message, { type: "error" });
     }
   }
 
@@ -344,7 +450,10 @@
       if (input) input.value = String(fresh.stock);
       renderStats();
     } catch (err) {
-      toast(store.errorMessage(err), { type: "error" });
+      const problem = store.problem("admin.stock", err, {
+        message: "The stock change didn't save. Please try again.",
+      });
+      toast(problem.message, { type: "error" });
       try {
         state.products = await store.listProducts();
         renderAll();
@@ -419,6 +528,11 @@
     els.productError.hidden = false;
   }
 
+  function showProductProblem(problem) {
+    els.productError.innerHTML = problemHTML(problem);
+    els.productError.hidden = false;
+  }
+
   async function onSaveProduct(event) {
     event.preventDefault();
     els.productError.hidden = true;
@@ -474,7 +588,9 @@
       renderAll();
       closeDialog(els.productLayer);
     } catch (err) {
-      showProductError(store.errorMessage(err));
+      showProductProblem(
+        store.problem("admin.listing_save", err, { message: "The listing didn't save. Please try again." })
+      );
     } finally {
       els.saveBtn.disabled = false;
       els.saveBtn.textContent = state.editingId ? "Save changes" : "Publish listing";
@@ -503,7 +619,10 @@
       closeDialog(els.confirmLayer);
       toast("Listing removed");
     } catch (err) {
-      toast(store.errorMessage(err), { type: "error" });
+      const problem = store.problem("admin.listing_delete", err, {
+        message: "The listing wasn't removed. Please try again.",
+      });
+      toast(problem.message, { type: "error" });
     } finally {
       els.confirmDeleteBtn.disabled = false;
       els.confirmDeleteBtn.textContent = "Remove listing";
@@ -511,8 +630,9 @@
   }
 
   /* ---------- Auth ---------- */
-  function showLoginError(message) {
-    els.loginError.textContent = message;
+  function showLoginError(message, code) {
+    els.loginError.innerHTML =
+      esc(message) + (code ? ` <span class="err-ref">Reference <strong>${esc(code)}</strong></span>` : "");
     els.loginError.hidden = false;
   }
 
@@ -523,6 +643,20 @@
       : `${ui.icon("lock", "icon--sm")} Sign in`;
   }
 
+  /* Signed in with the wrong account (or the session ended): the database will
+     keep refusing every action, so put them back on the sign-in form. */
+  async function denyDashboard(problem) {
+    await store.signOut().catch(() => {});
+    state.session = null;
+    state.products = [];
+    state.orders = [];
+    els.dashboard.hidden = true;
+    els.signOutBtn.hidden = true;
+    els.loginView.hidden = false;
+    els.password.value = "";
+    showLoginError(problem.message, problem.code);
+  }
+
   async function enterDashboard(session) {
     state.session = session;
     els.loginView.hidden = true;
@@ -531,17 +665,40 @@
     els.adminName.textContent = session.email || "admin";
     els.body.innerHTML = '<tr><td class="table-message" colspan="5">Loading listings…</td></tr>';
     loadOrders();
+    loadLogs();
+
+    try {
+      if (!(await store.isAdmin())) {
+        const problem = store.problem(
+          "admin.access",
+          Object.assign(new Error("The signed-in account is not listed in public.admins"), { status: 403 }),
+          {}
+        );
+        await denyDashboard(problem);
+        return;
+      }
+    } catch (err) {
+      /* If the admin list itself can't be read (setup or network), the listings
+         load below reports the same problem with its details. */
+    }
 
     try {
       state.products = await store.listProducts();
       renderAll();
     } catch (err) {
+      const problem = store.problem("admin.listings", err, {
+        message: "We couldn't load the listings just now. Please try again.",
+      });
+      if (problem.kind === "forbidden" || problem.kind === "session") {
+        await denyDashboard(problem);
+        return;
+      }
       els.body.innerHTML = "";
       els.tableEmpty.hidden = false;
       els.tableEmpty.innerHTML = `
         <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
-        <h3>Couldn't load listings</h3>
-        <p>${esc(store.errorMessage(err))}</p>
+        <h3>We couldn't load the listings</h3>
+        ${problemHTML(problem)}
         <button class="btn btn--outline btn--sm" type="button" id="reloadBtn">Try again</button>`;
       const reload = document.getElementById("reloadBtn");
       if (reload) reload.addEventListener("click", () => enterDashboard(session));
@@ -571,7 +728,8 @@
       els.loginForm.reset();
       await enterDashboard(session);
     } catch (err) {
-      showLoginError(store.errorMessage(err));
+      const problem = store.problem("admin.sign_in", err);
+      showLoginError(problem.message, problem.code);
     } finally {
       loginBusy(false);
     }
@@ -583,7 +741,10 @@
       await store.signOut();
       window.location.reload();
     } catch (err) {
-      toast(store.errorMessage(err), { type: "error" });
+      const problem = store.problem("admin.sign_out", err, {
+        message: "Couldn't sign out. Please try again.",
+      });
+      toast(problem.message, { type: "error" });
       els.signOutBtn.disabled = false;
     }
   }
@@ -606,6 +767,7 @@
       renderOrders();
     });
     els.ordersList.addEventListener("change", onOrderStatusChange);
+    els.logRefreshBtn.addEventListener("click", loadLogs);
 
     els.search.addEventListener(
       "input",
@@ -702,7 +864,10 @@
         renderStats();
       } catch (err) {
         toggle.checked = !next;
-        toast(store.errorMessage(err), { type: "error" });
+        const problem = store.problem("admin.listing_visibility", err, {
+          message: "That change didn't save. Please try again.",
+        });
+        toast(problem.message, { type: "error" });
       } finally {
         row.classList.remove("is-saving");
       }
@@ -759,6 +924,10 @@
     els.ordersList = document.getElementById("ordersList");
     els.ordersEmpty = document.getElementById("ordersEmpty");
     els.orderCount = document.getElementById("orderCount");
+    els.logBody = document.getElementById("logBody");
+    els.logEmpty = document.getElementById("logEmpty");
+    els.logCount = document.getElementById("logCount");
+    els.logRefreshBtn = document.getElementById("logRefreshBtn");
     els.newBtn = document.getElementById("newBtn");
     els.productLayer = document.getElementById("productLayer");
     els.productForm = document.getElementById("productForm");

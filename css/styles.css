@@ -2709,3 +2709,161 @@ ul.hero__meta {
     grid-template-columns: 5rem 1fr;
   }
 }
+
+/* ---------- Error messages ---------- */
+.err-ref {
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.err-ref strong,
+.log-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8em;
+}
+
+.err-ref strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.form-error p {
+  margin-bottom: 0.35rem;
+}
+
+.form-error p:last-child {
+  margin-bottom: 0;
+}
+
+.err-detail {
+  margin-top: 0.55rem;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.err-detail summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.err-detail summary:hover {
+  color: var(--ink);
+}
+
+.err-detail dl {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  text-align: left;
+}
+
+.err-detail dl > div {
+  display: grid;
+  grid-template-columns: 6.6rem 1fr;
+  gap: 0.6rem;
+}
+
+.err-detail dt {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.err-detail dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.err-detail__note {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+  text-align: left;
+}
+
+.empty .err-detail {
+  max-width: 46ch;
+}
+
+.empty .err-ref {
+  max-width: none;
+}
+
+/* ---------- System log ---------- */
+.log-table td {
+  vertical-align: top;
+  font-size: 0.82rem;
+}
+
+.log-msg {
+  max-width: 34ch;
+  overflow-wrap: anywhere;
+}
+
+.log-detail summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.log-detail summary:hover {
+  color: var(--ink);
+}
+
+.log-detail pre {
+  margin-top: 0.4rem;
+  max-width: 34ch;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.log-flag {
+  display: inline-block;
+  margin-left: 0.3rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--rose-soft);
+  color: var(--rose-ink);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+  .log-table tbody tr {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .log-table td {
+    display: block;
+    text-align: left;
+  }
+
+  .log-table td::before {
+    display: block;
+    margin-bottom: 0.1rem;
+  }
+
+  .log-table td.log-msg,
+  .log-table td[data-label="Details"] {
+    grid-column: auto;
+    text-align: left;
+  }
+
+  .log-msg,
+  .log-detail pre {
+    max-width: none;
+  }
+}

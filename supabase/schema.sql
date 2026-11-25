@@ -18,6 +18,45 @@ create index if not exists products_created_at_idx on public.products (created_a
 -- Customers can read the shop; only signed-in admins can change it.
 alter table public.products enable row level security;
 
+-- ---------------------------------------------------------------------------
+-- Who is allowed in as the shop admin. After creating the auth user in
+-- Authentication → Users, run (replace with that email):
+--   insert into public.admins (email) values ('you@example.com');
+-- Every other account stays a shopper, even if it can sign in.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.admins (
+  email text primary key check (position('@' in email) > 1)
+);
+
+alter table public.admins enable row level security;
+
+drop policy if exists "Admins read the admin list" on public.admins;
+create policy "Admins read the admin list"
+  on public.admins for select
+  to authenticated
+  using (lower(email) = lower(coalesce(auth.jwt() ->> 'email', '')));
+
+-- True only for the email in public.admins. SECURITY DEFINER lets the
+-- policies read that list even though row-level security is switched on.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admins a
+    where lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated;
+grant select on public.admins to authenticated;
+
 drop policy if exists "Shop is public" on public.products;
 create policy "Shop is public"
   on public.products for select
@@ -27,20 +66,20 @@ drop policy if exists "Admin adds listings" on public.products;
 create policy "Admin adds listings"
   on public.products for insert
   to authenticated
-  with check (true);
+  with check (public.is_admin());
 
 drop policy if exists "Admin edits listings" on public.products;
 create policy "Admin edits listings"
   on public.products for update
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists "Admin removes listings" on public.products;
 create policy "Admin removes listings"
   on public.products for delete
   to authenticated
-  using (true);
+  using (public.is_admin());
 
 grant select on public.products to anon, authenticated;
 grant insert, update, delete on public.products to authenticated;
@@ -103,14 +142,50 @@ drop policy if exists "Admin reads orders" on public.orders;
 create policy "Admin reads orders"
   on public.orders for select
   to authenticated
-  using (true);
+  using (public.is_admin());
 
 drop policy if exists "Admin updates orders" on public.orders;
 create policy "Admin updates orders"
   on public.orders for update
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin())
+  with check (public.is_admin());
 
 grant insert on public.orders to anon, authenticated;
 grant select, update on public.orders to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Error log. Every handled problem lands here with the short reference code
+-- the shop shows the customer; only the signed-in admin can read it.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.error_logs (
+  id uuid primary key default gen_random_uuid(),
+  code text not null,
+  area text not null default 'general',
+  message text not null default '',
+  details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists error_logs_created_at_idx on public.error_logs (created_at desc);
+
+alter table public.error_logs enable row level security;
+
+-- Any visitor can record a problem (checkout failures happen before sign-in).
+drop policy if exists "Anyone logs an error" on public.error_logs;
+create policy "Anyone logs an error"
+  on public.error_logs for insert
+  to anon, authenticated
+  with check (true);
+
+-- The log holds technical detail, so only the admin reads it. No update or
+-- delete policy exists: entries are append-only.
+drop policy if exists "Admin reads the log" on public.error_logs;
+create policy "Admin reads the log"
+  on public.error_logs for select
+  to authenticated
+  using (public.is_admin());
+
+grant insert on public.error_logs to anon, authenticated;
+grant select on public.error_logs to authenticated;

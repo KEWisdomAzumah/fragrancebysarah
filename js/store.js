@@ -6,7 +6,46 @@
   const PRODUCTS_KEY = "sf.products.v1";
   const ORDERS_KEY = "sf.orders.v1";
   const SESSION_KEY = "sf.admin.session";
+  const LOG_KEY = "sf.logs.v1";
+  const LOG_LIMIT = 100;
   const ORDER_STATUSES = ["new", "paid", "processed"];
+
+  /* Plain-language copy. Customers only ever see the `shop` set; the `admin`
+     set is allowed to name the fix because the admin can act on it. */
+  const COPY = {
+    shop: {
+      offline: "The shop can't connect right now. Check your internet and try again.",
+      secure: "The secure connection to the shop failed. Check your internet and try again.",
+      setup: "The shop is still getting ready, so products can't be shown just yet. Please check back shortly.",
+      busy: "The shop is busy right now. Please try again in a moment.",
+      forbidden: "That action isn't available to you. Please sign in or contact Sarah.",
+      session: "Please sign in again to continue.",
+      auth: "Please sign in again to continue.",
+      unconfirmed: "Please sign in again to continue.",
+      config: "The shop isn't ready yet. Please check back shortly.",
+      duplicate: "That order is already recorded. Please send it once more.",
+      invalid: "Some of the details weren't accepted. Check them and try again.",
+      notfound: "That item isn't available any more. Please refresh the page.",
+      server: "The shop couldn't finish that just now. Please try again in a moment.",
+      unknown: "Something went wrong. Please try again.",
+    },
+    admin: {
+      offline: "Can't reach the server. Check your internet connection and try again.",
+      secure: "The secure connection failed. Check the network and the site address, then try again.",
+      setup: "The shop database isn't ready yet, so nothing can be loaded or saved.",
+      busy: "Too many attempts in a short time. Wait a moment and try again.",
+      forbidden: "This account isn't set up as the shop admin, so it can't open or change the shop. Sign in with Sarah's account.",
+      session: "You've been signed out, or this account isn't allowed in. Sign in again to continue.",
+      auth: "That email and password don't match. Check them and try again.",
+      unconfirmed: "This account still needs confirming. Confirm the email in Supabase, then sign in again.",
+      config: "The shop's connection settings don't look right. Check js/config.js.",
+      duplicate: "That reference is already in use. Try again.",
+      invalid: "The server didn't accept those details. Check the values and try again.",
+      notfound: "That item no longer exists. Refresh the page and try again.",
+      server: "The server had a problem. Please try again in a moment.",
+      unknown: "That didn't go through. Please try again.",
+    },
+  };
 
   const SEED = [
     {
@@ -190,20 +229,113 @@
     return /^https:\/\/.+\.supabase\.co\/?$/.test(url) && key.length > 30;
   }
 
+  /* ---------- Errors ---------- */
+  function rawMessage(err) {
+    const message =
+      (err && (err.error_description || err.message || err.hint)) ||
+      (typeof err === "string" ? err : "");
+    return String(message || "").trim();
+  }
+
+  function classify(err) {
+    const message = rawMessage(err);
+    const status = Number(err && (err.status || err.statusCode)) || 0;
+    if (/invalid login credentials|invalid_grant|password.*(not correct|incorrect|wrong)/i.test(message)) {
+      return "auth";
+    }
+    if (/email not confirmed/i.test(message)) return "unconfirmed";
+    if (/jwt expired|refresh token|session (expired|missing)|invalid refresh/i.test(message)) return "session";
+    if (/row-level security|permission denied|insufficient privilege|not authorized/i.test(message)) {
+      return "forbidden";
+    }
+    if (/does not exist|schema cache|42P01|PGRST205|could not find the table/i.test(message)) return "setup";
+    if (/duplicate key|already exists|23505/i.test(message)) return "duplicate";
+    if (/net::err_cert|ssl|certificate|mixed content/i.test(message)) return "secure";
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(message)) return "offline";
+    if (/api key|jwt|apikey/i.test(message)) return "config";
+    if (/rate limit|too many requests/i.test(message)) return "busy";
+    /* Status codes catch everything the messages didn't name. */
+    if (status === 400 || status === 422) return "invalid";
+    if (status === 401) return "session";
+    if (status === 403) return "forbidden";
+    if (status === 404) return "notfound";
+    if (status === 409) return "duplicate";
+    if (status === 429) return "busy";
+    if (status >= 500) return "server";
+    return "unknown";
+  }
+
+  function problemDetail(err, kind) {
+    const bits = [];
+    const message = rawMessage(err);
+    if (message) bits.push(message);
+    const status = err && (err.status || err.statusCode);
+    if (status) bits.push("response " + status);
+    if (err && err.code && String(err.code) !== String(status)) bits.push("code " + err.code);
+    if (kind === "setup") {
+      bits.push("The database tables are missing — run supabase/schema.sql in the Supabase SQL Editor.");
+    }
+    if (kind === "offline") {
+      bits.push("The server couldn't be reached. Check the network, then the Supabase URL and key in js/config.js.");
+    }
+    if (kind === "config") bits.push("Check the Supabase URL and public key in js/config.js.");
+    return bits.join(" · ") || "The server didn't give a reason.";
+  }
+
+  function errorCode() {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let tail = "";
+    for (let i = 0; i < 4; i += 1) tail += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    return "ERR-" + tail;
+  }
+
+  function normaliseLog(row) {
+    let details = row.details;
+    if (typeof details === "string") {
+      try {
+        details = JSON.parse(details);
+      } catch (err) {
+        details = {};
+      }
+    }
+    return {
+      id: row.id ? String(row.id) : newId(),
+      code: String(row.code || ""),
+      area: String(row.area || "general"),
+      message: String(row.message || ""),
+      details: details && typeof details === "object" ? details : {},
+      created_at: row.created_at || new Date().toISOString(),
+    };
+  }
+
+  function readLogsLocal() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed.map(normaliseLog) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
   const Store = {
     mode: "demo",
     client: null,
+    sessionEmail: null,
 
     init() {
-      if (hasLiveKeys() && window.supabase && typeof window.supabase.createClient === "function") {
-        try {
-          this.client = window.supabase.createClient(
-            cfg.supabaseUrl.trim().replace(/\/$/, ""),
-            cfg.supabaseAnonKey.trim()
-          );
-          this.mode = "live";
-        } catch (err) {
-          this.mode = "demo";
+      if (hasLiveKeys()) {
+        /* Keep live mode even if the library or settings fail, so the admin
+           page never quietly drops to the demo password or seed catalogue. */
+        this.mode = "live";
+        if (window.supabase && typeof window.supabase.createClient === "function") {
+          try {
+            this.client = window.supabase.createClient(
+              cfg.supabaseUrl.trim().replace(/\/$/, ""),
+              cfg.supabaseAnonKey.trim()
+            );
+          } catch (err) {
+            this.client = null;
+          }
         }
       }
       return this;
@@ -213,27 +345,103 @@
       return this.mode === "live";
     },
 
-    errorMessage(err) {
-      const message = (err && (err.message || err.error_description)) || String(err || "");
-      if (!message) return "Something went wrong. Please try again.";
-      if (/invalid login credentials/i.test(message)) return "That email and password don't match.";
-      if (/email not confirmed/i.test(message)) return "Confirm your email in Supabase before signing in.";
-      if (/row-level security|permission denied/i.test(message)) {
-        return "This account isn't allowed to change the shop. Check your Supabase policies.";
+    /* The Supabase script comes from a CDN over HTTPS. If that failed to load,
+       every call reports a connection problem instead of touching local data. */
+    liveClient() {
+      if (!this.client) {
+        throw Object.assign(
+          new Error("Failed to fetch: the Supabase library did not load from the CDN."),
+          { status: 0 }
+        );
       }
-      if (/does not exist|schema cache|42P01/i.test(message)) {
-        return "The orders table is missing. Re-run supabase/schema.sql in Supabase.";
+      return this.client;
+    },
+
+    friendlyMessage(err, audience) {
+      const kind = classify(err);
+      const copy = COPY[audience === "shop" ? "shop" : "admin"];
+      return copy[kind] || copy.unknown;
+    },
+
+    /* Turns a raw error into one plain sentence plus a reference code, and
+       records the technical detail in the log. Never throws. */
+    problem(area, err, options) {
+      const opts = options || {};
+      const audience = opts.audience === "shop" ? "shop" : "admin";
+      const kind = classify(err);
+      const copy = COPY[audience];
+      const entry = normaliseLog({
+        id: newId(),
+        code: errorCode(),
+        area: String(area || "general"),
+        message: rawMessage(err).slice(0, 600) || "No error message was returned.",
+        details: {
+          kind,
+          status: (err && (err.status || err.statusCode)) || null,
+          code: (err && err.code) || null,
+          security: kind === "forbidden" || kind === "session" || kind === "auth",
+          signedIn: this.sessionEmail || null,
+          page: typeof location !== "undefined" ? location.pathname : "",
+          mode: this.mode,
+        },
+        created_at: new Date().toISOString(),
+      });
+      this.writeLog(entry);
+      const custom = opts.message && (kind === "unknown" || kind === "server") ? opts.message : "";
+      return {
+        code: entry.code,
+        message: custom || copy[kind] || copy.unknown,
+        detail: problemDetail(err, kind),
+        kind,
+        when: entry.created_at,
+        mode: this.mode,
+      };
+    },
+
+    /* Fire-and-forget. Live mode writes to error_logs; otherwise (or if that
+       fails) the entry is kept in this browser so the admin can still see it. */
+    async writeLog(entry) {
+      if (this.mode === "live" && this.client) {
+        try {
+          const { error } = await this.liveClient().from("error_logs").insert({
+            code: entry.code,
+            area: entry.area,
+            message: entry.message,
+            details: entry.details,
+            created_at: entry.created_at,
+          });
+          if (!error) return true;
+        } catch (err) {
+          /* fall back to the browser log below */
+        }
       }
-      if (/failed to fetch|networkerror|load failed/i.test(message)) {
-        return "Can't reach the database. Check your connection and Supabase keys.";
+      try {
+        const rows = readLogsLocal();
+        rows.unshift(entry);
+        localStorage.setItem(LOG_KEY, JSON.stringify(rows.slice(0, LOG_LIMIT)));
+      } catch (err) {
+        /* nowhere else to record it */
       }
-      if (/jwt|api key/i.test(message)) return "Supabase keys look wrong. Check js/config.js.";
-      return message;
+      return false;
+    },
+
+    async listErrorLogs(limit) {
+      const max = Math.max(1, Math.min(200, Number(limit) || 50));
+      if (this.mode === "live") {
+        const { data, error } = await this.liveClient()
+          .from("error_logs")
+          .select("id, code, area, message, details, created_at")
+          .order("created_at", { ascending: false })
+          .limit(max);
+        if (error) throw error;
+        return (data || []).map(normaliseLog);
+      }
+      return readLogsLocal().slice(0, max);
     },
 
     async listProducts() {
       if (this.mode === "live") {
-        const { data, error } = await this.client
+        const { data, error } = await this.liveClient()
           .from("products")
           .select("id, name, category, description, price, stock, image_url, active, created_at")
           .order("created_at", { ascending: true });
@@ -256,7 +464,7 @@
           image_url: row.image_url,
           active: row.active,
         };
-        const { data, error } = await this.client.from("products").insert(payload).select().single();
+        const { data, error } = await this.liveClient().from("products").insert(payload).select().single();
         if (error) throw error;
         return normalise(data);
       }
@@ -276,7 +484,7 @@
       if (allowed.stock !== undefined) allowed.stock = Math.max(0, Math.trunc(Number(allowed.stock) || 0));
 
       if (this.mode === "live") {
-        const { data, error } = await this.client
+        const { data, error } = await this.liveClient()
           .from("products")
           .update(allowed)
           .eq("id", id)
@@ -296,7 +504,7 @@
 
     async deleteProduct(id) {
       if (this.mode === "live") {
-        const { error } = await this.client.from("products").delete().eq("id", id);
+        const { error } = await this.liveClient().from("products").delete().eq("id", id);
         if (error) throw error;
         return true;
       }
@@ -307,7 +515,7 @@
 
     async listOrders() {
       if (this.mode === "live") {
-        const { data, error } = await this.client
+        const { data, error } = await this.liveClient()
           .from("orders")
           .select(
             "id, ref, customer_name, customer_phone, customer_area, note, items, subtotal, status, created_at"
@@ -329,7 +537,7 @@
 
       if (this.mode === "live") {
         /* Customers are anonymous, so insert without reading the row back. */
-        const { error } = await this.client.from("orders").insert({
+        const { error } = await this.liveClient().from("orders").insert({
           ref: row.ref,
           customer_name: row.customer_name,
           customer_phone: row.customer_phone,
@@ -353,7 +561,7 @@
       if (ORDER_STATUSES.indexOf(status) === -1) throw new Error("Unknown order status.");
 
       if (this.mode === "live") {
-        const { data, error } = await this.client
+        const { data, error } = await this.liveClient()
           .from("orders")
           .update({ status })
           .eq("id", id)
@@ -371,11 +579,23 @@
       return rows[index];
     },
 
+    /* Live mode asks the database whether the signed-in email is listed as
+       the shop admin. RLS returns no rows for anyone else, so this is also
+       false for a perfectly valid account that simply isn't Sarah's. */
+    async isAdmin() {
+      if (this.mode !== "live") return true;
+      const { data, error } = await this.liveClient().from("admins").select("email").limit(1);
+      if (error) throw error;
+      return Array.isArray(data) && data.length > 0;
+    },
+
     async signIn(email, password) {
       if (this.mode === "live") {
-        const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+        const { data, error } = await this.liveClient().auth.signInWithPassword({ email, password });
         if (error) throw error;
-        return { email: data.user ? data.user.email : email };
+        const signedIn = data.user ? data.user.email : email;
+        this.sessionEmail = signedIn;
+        return { email: signedIn };
       }
 
       if (!password) throw new Error("Enter the admin password.");
@@ -385,15 +605,18 @@
       } catch (err) {
         /* session still works for this page view */
       }
+      this.sessionEmail = "demo@sarahs-fragrance.local";
       return { email: "demo@sarahs-fragrance.local" };
     },
 
     async signOut() {
       if (this.mode === "live") {
-        const { error } = await this.client.auth.signOut();
+        const { error } = await this.liveClient().auth.signOut();
         if (error) throw error;
+        this.sessionEmail = null;
         return;
       }
+      this.sessionEmail = null;
       try {
         sessionStorage.removeItem(SESSION_KEY);
       } catch (err) {
@@ -403,13 +626,24 @@
 
     async getSession() {
       if (this.mode === "live") {
-        const { data, error } = await this.client.auth.getSession();
-        if (error) return null;
-        const session = data && data.session;
-        return session ? { email: session.user.email } : null;
+        try {
+          const { data, error } = await this.liveClient().auth.getSession();
+          if (error) {
+            this.sessionEmail = null;
+            return null;
+          }
+          const session = data && data.session;
+          this.sessionEmail = session ? session.user.email : null;
+          return session ? { email: session.user.email } : null;
+        } catch (err) {
+          this.sessionEmail = null;
+          return null;
+        }
       }
       try {
-        return sessionStorage.getItem(SESSION_KEY) ? { email: "demo@sarahs-fragrance.local" } : null;
+        const demo = sessionStorage.getItem(SESSION_KEY) ? { email: "demo@sarahs-fragrance.local" } : null;
+        this.sessionEmail = demo ? demo.email : null;
+        return demo;
       } catch (err) {
         return null;
       }
