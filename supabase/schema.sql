@@ -69,3 +69,48 @@ from (values
    320.00, 4, 'assets/gift-set.png')
 ) as seed(name, category, description, price, stock, image_url)
 where not exists (select 1 from public.products);
+
+-- ---------------------------------------------------------------------------
+-- Orders. Checkout writes one row; the admin marks it paid, then processed.
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  ref text not null unique,
+  customer_name text not null,
+  customer_phone text not null,
+  customer_area text not null default '',
+  note text not null default '',
+  items jsonb not null default '[]'::jsonb,
+  subtotal numeric(10, 2) not null default 0 check (subtotal >= 0),
+  status text not null default 'new' check (status in ('new', 'paid', 'processed')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists orders_created_at_idx on public.orders (created_at desc);
+
+alter table public.orders enable row level security;
+
+-- Anyone can leave an order, but only as a brand-new one.
+drop policy if exists "Customers place orders" on public.orders;
+create policy "Customers place orders"
+  on public.orders for insert
+  to anon, authenticated
+  with check (status = 'new');
+
+-- Order details include customer contact information, so only the admin reads them.
+drop policy if exists "Admin reads orders" on public.orders;
+create policy "Admin reads orders"
+  on public.orders for select
+  to authenticated
+  using (true);
+
+drop policy if exists "Admin updates orders" on public.orders;
+create policy "Admin updates orders"
+  on public.orders for update
+  to authenticated
+  using (true)
+  with check (true);
+
+grant insert on public.orders to anon, authenticated;
+grant select, update on public.orders to authenticated;

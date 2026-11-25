@@ -10,10 +10,13 @@
 
   const state = {
     products: [],
+    orders: [],
     session: null,
     editingId: null,
     pendingDelete: null,
     search: "",
+    orderFilter: "all",
+    ordersError: "",
     stockTimers: new Map(),
   };
 
@@ -140,6 +143,168 @@
   function renderAll() {
     renderStats();
     renderTable();
+  }
+
+  /* ---------- Orders ---------- */
+  const orderDate = new Intl.DateTimeFormat("en-GH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  function statusLabel(status) {
+    if (status === "paid") return "Paid";
+    if (status === "processed") return "Processed";
+    return "New";
+  }
+
+  function orderCardHTML(order) {
+    const items = order.items
+      .map(
+        (item) => `
+        <li class="order-item">
+          <span class="order-item__name">${esc(item.name)}</span>
+          <span class="order-item__qty">×${item.qty}</span>
+          <span class="order-item__total">${money(item.total)}</span>
+        </li>`
+      )
+      .join("");
+    const date = new Date(order.created_at);
+    const when = Number.isNaN(date.getTime()) ? "" : orderDate.format(date);
+    const selected = (value) => (order.status === value ? " selected" : "");
+
+    return `
+      <article class="order-card" data-order="${esc(order.id)}" data-status="${esc(order.status)}">
+        <div class="order-card__head">
+          <div>
+            <p class="order-card__ref">${esc(order.ref || "Order")}</p>
+            <p class="order-card__time">${esc(when)}</p>
+          </div>
+          <span class="status-pill status-pill--${esc(order.status)}">${statusLabel(order.status)}</span>
+        </div>
+        <ul class="order-items">${items}</ul>
+        <dl class="order-card__meta">
+          <div><dt>Customer</dt><dd>${esc(order.customer_name)}</dd></div>
+          <div><dt>Phone</dt><dd><a href="tel:${esc(
+            order.customer_phone.replace(/[^\d+]/g, "")
+          )}">${esc(order.customer_phone)}</a></dd></div>
+          <div><dt>Deliver to</dt><dd>${esc(order.customer_area)}</dd></div>
+          ${
+            order.note
+              ? `<div><dt>Note</dt><dd class="order-card__note">${esc(order.note)}</dd></div>`
+              : ""
+          }
+        </dl>
+        <div class="order-card__foot">
+          <p class="order-card__sum">Total <strong>${money(order.subtotal)}</strong></p>
+          <label class="order-status">
+            <span class="visually-hidden">Change status for order ${esc(order.ref)}</span>
+            <select data-order-status aria-label="Status for order ${esc(order.ref)}">
+              <option value="new"${selected("new")}>New order</option>
+              <option value="paid"${selected("paid")}>Paid</option>
+              <option value="processed"${selected("processed")}>Processed</option>
+            </select>
+          </label>
+        </div>
+      </article>`;
+  }
+
+  function renderOrders() {
+    const counts = { all: state.orders.length, new: 0, paid: 0, processed: 0 };
+    state.orders.forEach((order) => {
+      counts[order.status] += 1;
+    });
+    document.querySelectorAll("[data-order-count]").forEach((el) => {
+      el.textContent = String(counts[el.dataset.orderCount] || 0);
+    });
+
+    if (state.ordersError) {
+      els.ordersList.innerHTML = "";
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.innerHTML = `
+        <svg class="icon" aria-hidden="true"><use href="#i-alert"></use></svg>
+        <h3>Couldn't load orders</h3>
+        <p>${esc(state.ordersError)}</p>
+        <button class="btn btn--outline btn--sm" type="button" id="ordersRetryBtn">Try again</button>`;
+      const retry = document.getElementById("ordersRetryBtn");
+      if (retry) retry.addEventListener("click", loadOrders);
+      els.orderCount.textContent = "";
+      return;
+    }
+
+    const filtered =
+      state.orderFilter === "all"
+        ? state.orders
+        : state.orders.filter((order) => order.status === state.orderFilter);
+
+    if (!state.orders.length) {
+      els.ordersList.innerHTML = "";
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.innerHTML = `
+        <svg class="icon" aria-hidden="true"><use href="#i-chat"></use></svg>
+        <h3>No orders yet</h3>
+        <p>Orders sent from the shop checkout will appear here, ready to mark paid and processed.</p>`;
+      els.orderCount.textContent = "";
+      return;
+    }
+
+    els.orderCount.textContent =
+      state.orderFilter === "all"
+        ? `${state.orders.length} order${state.orders.length === 1 ? "" : "s"}`
+        : `${filtered.length} of ${state.orders.length} orders`;
+
+    if (!filtered.length) {
+      els.ordersList.innerHTML = "";
+      els.ordersEmpty.hidden = false;
+      els.ordersEmpty.innerHTML = `
+        <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+        <h3>No ${statusLabel(state.orderFilter).toLowerCase()} orders</h3>
+        <p>Orders you move to this status will show up here.</p>`;
+      return;
+    }
+
+    els.ordersEmpty.hidden = true;
+    els.ordersList.innerHTML = filtered.map(orderCardHTML).join("");
+  }
+
+  async function loadOrders() {
+    state.ordersError = "";
+    els.ordersEmpty.hidden = true;
+    els.ordersList.innerHTML = '<p class="orders-loading">Loading orders…</p>';
+    try {
+      state.orders = await store.listOrders();
+    } catch (err) {
+      state.orders = [];
+      state.ordersError = store.errorMessage(err);
+    }
+    renderOrders();
+  }
+
+  async function onOrderStatusChange(event) {
+    const select = event.target.closest("[data-order-status]");
+    if (!select) return;
+    const card = select.closest("[data-order]");
+    const order = card ? state.orders.find((row) => row.id === card.dataset.order) : null;
+    if (!card || !order) return;
+
+    const next = select.value;
+    if (next === order.status) return;
+    const previous = order.status;
+    select.disabled = true;
+    card.classList.add("is-saving");
+    try {
+      const fresh = await store.updateOrderStatus(order.id, next);
+      Object.assign(order, fresh);
+      renderOrders();
+      toast(`${order.ref} marked ${statusLabel(order.status).toLowerCase()}`);
+    } catch (err) {
+      select.value = previous;
+      select.disabled = false;
+      card.classList.remove("is-saving");
+      toast(store.errorMessage(err), { type: "error" });
+    }
   }
 
   /* ---------- Stock ---------- */
@@ -365,6 +530,7 @@
     els.signOutBtn.hidden = false;
     els.adminName.textContent = session.email || "admin";
     els.body.innerHTML = '<tr><td class="table-message" colspan="5">Loading listings…</td></tr>';
+    loadOrders();
 
     try {
       state.products = await store.listProducts();
@@ -429,6 +595,17 @@
     els.newBtn.addEventListener("click", () => openProduct(null));
     els.productForm.addEventListener("submit", onSaveProduct);
     els.confirmDeleteBtn.addEventListener("click", confirmDelete);
+
+    els.orderFilters.addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-order-filter]");
+      if (!chip) return;
+      state.orderFilter = chip.dataset.orderFilter;
+      els.orderFilters.querySelectorAll("[data-order-filter]").forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(btn === chip));
+      });
+      renderOrders();
+    });
+    els.ordersList.addEventListener("change", onOrderStatusChange);
 
     els.search.addEventListener(
       "input",
@@ -578,6 +755,10 @@
     els.listCount = document.getElementById("listCount");
     els.body = document.getElementById("productsBody");
     els.tableEmpty = document.getElementById("tableEmpty");
+    els.orderFilters = document.getElementById("orderFilters");
+    els.ordersList = document.getElementById("ordersList");
+    els.ordersEmpty = document.getElementById("ordersEmpty");
+    els.orderCount = document.getElementById("orderCount");
     els.newBtn = document.getElementById("newBtn");
     els.productLayer = document.getElementById("productLayer");
     els.productForm = document.getElementById("productForm");

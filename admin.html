@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Store admin — Sarahs' Fragrance</title>
-    <meta name="description" content="Update stock, prices and new listings for Sarahs' Fragrance." />
+    <meta name="description" content="Track orders, update stock and manage listings for Sarahs' Fragrance." />
     <meta name="robots" content="noindex" />
     <meta name="theme-color" content="#fbf4ee" />
     <script>
@@ -78,7 +78,7 @@
           <div class="login-card">
             <p class="eyebrow">Sarahs' Studio</p>
             <h1>Welcome back</h1>
-            <p>Sign in to update stock, prices and new listings.</p>
+            <p>Sign in to track orders, update stock and publish new listings.</p>
 
             <form id="loginForm" novalidate>
               <div class="field" id="emailField">
@@ -116,7 +116,7 @@
           <div class="admin-head">
             <div>
               <p class="eyebrow">Store admin</p>
-              <h1>Inventory</h1>
+              <h1>Shop dashboard</h1>
             </div>
             <div class="admin-head__actions">
               <button class="btn btn--primary" id="newBtn" type="button">
@@ -129,9 +129,9 @@
           <div class="demo-banner" id="demoBanner" hidden>
             <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
             <div>
-              <strong>Demo mode.</strong> Listings are saved in this browser only. Add your
+              <strong>Demo mode.</strong> Orders and listings are saved in this browser only. Add your
               <code>supabaseUrl</code> and <code>supabaseAnonKey</code> in <code>js/config.js</code>
-              to share stock with customers on every device.
+              to share them with customers on every device.
             </div>
           </div>
 
@@ -152,6 +152,35 @@
               <p class="stat__label">Sold out</p>
               <p class="stat__value" id="statOut">0</p>
             </div>
+          </div>
+
+          <div class="panel orders-panel">
+            <div class="panel__head">
+              <div class="panel__title">
+                <h2>Orders</h2>
+                <p class="panel__sub">
+                  Set an order to <strong>Paid</strong> when payment is confirmed, then
+                  <strong>Processed</strong> once it's packed or delivered.
+                </p>
+              </div>
+              <div class="order-filters" id="orderFilters" role="group" aria-label="Filter orders">
+                <button class="chip" type="button" data-order-filter="all" aria-pressed="true">
+                  All <span class="chip__n" data-order-count="all">0</span>
+                </button>
+                <button class="chip" type="button" data-order-filter="new" aria-pressed="false">
+                  New <span class="chip__n" data-order-count="new">0</span>
+                </button>
+                <button class="chip" type="button" data-order-filter="paid" aria-pressed="false">
+                  Paid <span class="chip__n" data-order-count="paid">0</span>
+                </button>
+                <button class="chip" type="button" data-order-filter="processed" aria-pressed="false">
+                  Processed <span class="chip__n" data-order-count="processed">0</span>
+                </button>
+              </div>
+              <span class="panel__count" id="orderCount"></span>
+            </div>
+            <div class="orders-grid" id="ordersList"></div>
+            <div class="empty" id="ordersEmpty" hidden></div>
           </div>
 
           <div class="panel">

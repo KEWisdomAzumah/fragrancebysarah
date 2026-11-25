@@ -1915,6 +1915,228 @@ ul.hero__meta {
   white-space: nowrap;
 }
 
+/* ---------- Admin orders ---------- */
+.panel__title {
+  flex: 1 1 260px;
+}
+
+.panel__sub {
+  margin-top: 0.2rem;
+  max-width: 54ch;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.panel__sub strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.order-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.order-filters .chip {
+  padding: 0.36rem 0.8rem;
+  font-size: 0.78rem;
+}
+
+.chip__n {
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.9rem;
+  padding: 1.1rem;
+}
+
+.orders-grid:empty {
+  display: none;
+}
+
+.orders-loading {
+  padding: 1.3rem 1.2rem;
+  font-size: 0.88rem;
+  color: var(--ink-2);
+}
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem 1.05rem 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.order-card.is-saving {
+  opacity: 0.65;
+}
+
+.order-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.order-card__ref {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.order-card__time {
+  margin-top: 0.12rem;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+
+.status-pill {
+  flex: none;
+  padding: 0.28rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+.status-pill--new {
+  background: var(--rose-soft);
+  color: var(--rose-ink);
+}
+
+.status-pill--paid {
+  background: color-mix(in srgb, var(--sage) 16%, var(--surface));
+  color: var(--sage-ink);
+}
+
+.status-pill--processed {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.order-items {
+  display: grid;
+  gap: 0.3rem;
+  padding-block: 0.7rem;
+  border-block: 1px dashed var(--line);
+}
+
+.order-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.order-item__name {
+  overflow-wrap: anywhere;
+}
+
+.order-item__qty {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.order-item__total {
+  font-variant-numeric: tabular-nums;
+}
+
+.order-card__meta {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.order-card__meta div {
+  display: grid;
+  grid-template-columns: 5.6rem 1fr;
+  gap: 0.5rem;
+}
+
+.order-card__meta dt {
+  padding-top: 0.1rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.order-card__meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.order-card__meta a {
+  color: var(--ink);
+}
+
+.order-card__note {
+  white-space: pre-line;
+}
+
+.order-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: auto;
+}
+
+.order-card__sum {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+
+.order-card__sum strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-status select {
+  max-width: 100%;
+  padding: 0.42rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.order-status select:focus {
+  outline: none;
+  border-color: var(--sage);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sage) 18%, transparent);
+}
+
+.order-status select:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.orders-panel .empty {
+  margin: 1.1rem;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
@@ -2476,5 +2698,14 @@ ul.hero__meta {
 @media (max-width: 560px) {
   .hide-sm {
     display: none !important;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+    padding: 0.9rem;
+  }
+
+  .order-card__meta div {
+    grid-template-columns: 5rem 1fr;
   }
 }

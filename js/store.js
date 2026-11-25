@@ -4,7 +4,9 @@
 (function (SF) {
   const cfg = SF.config;
   const PRODUCTS_KEY = "sf.products.v1";
+  const ORDERS_KEY = "sf.orders.v1";
   const SESSION_KEY = "sf.admin.session";
+  const ORDER_STATUSES = ["new", "paid", "processed"];
 
   const SEED = [
     {
@@ -127,6 +129,61 @@
     return "p-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  function normaliseOrder(row) {
+    const items = Array.isArray(row.items)
+      ? row.items.map((item) => {
+          const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
+          const price = Math.max(0, Number(item.price) || 0);
+          return {
+            name: String(item.name || "Item"),
+            qty,
+            price,
+            total: Math.max(0, Number(item.total) || price * qty),
+          };
+        })
+      : [];
+    return {
+      id: row.id ? String(row.id) : newId(),
+      ref: String(row.ref || ""),
+      customer_name: String(row.customer_name || ""),
+      customer_phone: String(row.customer_phone || ""),
+      customer_area: String(row.customer_area || ""),
+      note: String(row.note || ""),
+      items,
+      subtotal: Math.max(0, Number(row.subtotal) || 0),
+      status: ORDER_STATUSES.indexOf(row.status) === -1 ? "new" : row.status,
+      created_at: row.created_at || new Date().toISOString(),
+    };
+  }
+
+  function byNewest(a, b) {
+    return new Date(b.created_at) - new Date(a.created_at);
+  }
+
+  function readOrdersLocal() {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(ORDERS_KEY);
+    } catch (err) {
+      raw = null;
+    }
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(normaliseOrder).sort(byNewest) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function writeOrdersLocal(rows) {
+    try {
+      localStorage.setItem(ORDERS_KEY, JSON.stringify(rows));
+    } catch (err) {
+      throw new Error("This browser blocked saving the order.");
+    }
+  }
+
   function hasLiveKeys() {
     const url = (cfg.supabaseUrl || "").trim();
     const key = (cfg.supabaseAnonKey || "").trim();
@@ -162,7 +219,10 @@
       if (/invalid login credentials/i.test(message)) return "That email and password don't match.";
       if (/email not confirmed/i.test(message)) return "Confirm your email in Supabase before signing in.";
       if (/row-level security|permission denied/i.test(message)) {
-        return "This account isn't allowed to edit listings. Check your Supabase policies.";
+        return "This account isn't allowed to change the shop. Check your Supabase policies.";
+      }
+      if (/does not exist|schema cache|42P01/i.test(message)) {
+        return "The orders table is missing. Re-run supabase/schema.sql in Supabase.";
       }
       if (/failed to fetch|networkerror|load failed/i.test(message)) {
         return "Can't reach the database. Check your connection and Supabase keys.";
@@ -243,6 +303,72 @@
       const rows = readLocal().filter((row) => row.id !== id);
       writeLocal(rows);
       return true;
+    },
+
+    async listOrders() {
+      if (this.mode === "live") {
+        const { data, error } = await this.client
+          .from("orders")
+          .select(
+            "id, ref, customer_name, customer_phone, customer_area, note, items, subtotal, status, created_at"
+          )
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return (data || []).map(normaliseOrder);
+      }
+      return readOrdersLocal();
+    },
+
+    async createOrder(input) {
+      const row = normaliseOrder({
+        ...input,
+        id: newId(),
+        status: "new",
+        created_at: new Date().toISOString(),
+      });
+
+      if (this.mode === "live") {
+        /* Customers are anonymous, so insert without reading the row back. */
+        const { error } = await this.client.from("orders").insert({
+          ref: row.ref,
+          customer_name: row.customer_name,
+          customer_phone: row.customer_phone,
+          customer_area: row.customer_area,
+          note: row.note,
+          items: row.items,
+          subtotal: row.subtotal,
+          status: "new",
+        });
+        if (error) throw error;
+        return row;
+      }
+
+      const rows = readOrdersLocal();
+      rows.unshift(row);
+      writeOrdersLocal(rows);
+      return row;
+    },
+
+    async updateOrderStatus(id, status) {
+      if (ORDER_STATUSES.indexOf(status) === -1) throw new Error("Unknown order status.");
+
+      if (this.mode === "live") {
+        const { data, error } = await this.client
+          .from("orders")
+          .update({ status })
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return normaliseOrder(data);
+      }
+
+      const rows = readOrdersLocal();
+      const index = rows.findIndex((row) => row.id === id);
+      if (index === -1) throw new Error("That order no longer exists.");
+      rows[index] = normaliseOrder({ ...rows[index], status });
+      writeOrdersLocal(rows);
+      return rows[index];
     },
 
     async signIn(email, password) {

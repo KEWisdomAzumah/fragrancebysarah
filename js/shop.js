@@ -342,6 +342,27 @@
     return rows.join("\n");
   }
 
+  function saveOrder({ lines, name, phone, area, note, ref }) {
+    store
+      .createOrder({
+        ref,
+        customer_name: name,
+        customer_phone: phone,
+        customer_area: area,
+        note,
+        items: lines.map((line) => ({
+          name: line.product.name,
+          qty: line.qty,
+          price: line.product.price,
+          total: line.lineTotal,
+        })),
+        subtotal: subtotalIn(lines),
+      })
+      .catch((err) => {
+        console.warn("[Sarahs' Fragrance] Order wasn't saved to the admin dashboard:", err);
+      });
+  }
+
   function renderSummary(lines) {
     els.summary.innerHTML =
       lines
@@ -426,6 +447,7 @@
     const url = waUrl(buildOrderMessage({ lines, name, phone, area, note, ref }));
     openExternal(url);
     showDone(ref, url);
+    saveOrder({ lines, name, phone, area, note, ref });
   }
 
   /* ---------- Events ---------- */
