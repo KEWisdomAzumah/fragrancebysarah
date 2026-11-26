@@ -35,7 +35,7 @@ drop policy if exists "Admins read the admin list" on public.admins;
 create policy "Admins read the admin list"
   on public.admins for select
   to authenticated
-  using (lower(email) = lower(coalesce(auth.jwt() ->> 'wisdomazumah1784@gmail.com', 'Quami@2020')));
+  using (lower(email) = lower(coalesce(auth.jwt() ->> 'email', '')));
 
 -- True only for the email in public.admins. SECURITY DEFINER lets the
 -- policies read that list even though row-level security is switched on.
@@ -49,7 +49,7 @@ as $$
   select exists (
     select 1
     from public.admins a
-    where lower(a.email) = lower(coalesce(auth.jwt() ->> 'wisdomazumah1784@gmail.com', 'Quami@2020'))
+    where lower(a.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
   );
 $$;
 
