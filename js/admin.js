@@ -14,6 +14,9 @@
     session: null,
     editingId: null,
     pendingDelete: null,
+    pendingImage: null,
+    previewUrl: "",
+    savedImageUrl: "",
     search: "",
     orderFilter: "all",
     ordersProblem: null,
@@ -312,6 +315,7 @@
     "admin.order_status": "Admin · order status",
     "admin.stock": "Admin · stock",
     "admin.listing_save": "Admin · listing form",
+    "admin.listing_image": "Admin · listing photo",
     "admin.listing_delete": "Admin · remove listing",
     "admin.listing_visibility": "Admin · visibility",
     "admin.sign_in": "Admin · sign in",
@@ -480,28 +484,117 @@
   }
 
   /* ---------- Listing form ---------- */
-  function updatePreview() {
-    const url = els.pImage.value.trim();
+  const PHOTO_MAX_BYTES = 30 * 1024 * 1024;
+  const PHOTO_NOTE = "Take a photo or choose one from your gallery — it uploads when you save.";
+
+  function releasePreview() {
+    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = "";
+  }
+
+  function showPreview(url, note) {
     els.previewFrame.innerHTML = "";
-    if (!url) {
-      els.previewNote.textContent = "Paste an image link. Leave empty to use the soft placeholder.";
-      return;
-    }
     const image = document.createElement("img");
     image.alt = "";
     image.addEventListener("error", () => {
       els.previewFrame.innerHTML = "";
-      els.previewNote.textContent = "That image link didn't load — check the URL.";
+      els.previewNote.textContent = "That image didn't load — choose another photo or link.";
     });
     image.src = url;
     els.previewFrame.appendChild(image);
-    els.previewNote.textContent = "Preview — the shop will show this photo.";
+    els.previewNote.textContent = note;
+  }
+
+  function updatePreview() {
+    if (state.previewUrl) {
+      showPreview(state.previewUrl, "New photo — it uploads when you save.");
+      return;
+    }
+    const url = els.pImage.value.trim();
+    if (!url) {
+      els.previewFrame.innerHTML = "";
+      els.previewNote.textContent = PHOTO_NOTE;
+      return;
+    }
+    showPreview(url, "Preview — the shop will show this photo.");
+  }
+
+  /* Phone photos are 3–10 MB; shrink to a shop-sized JPEG so pages stay fast
+     and the free Storage plan lasts. Demo mode keeps a smaller copy because it
+     lives in localStorage. */
+  function shrinkPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const source = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        const max = store.isLive() ? 1400 : 900;
+        const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(source);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("That photo couldn't be read. Try a different one."));
+          },
+          "image/jpeg",
+          0.8
+        );
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(source);
+        reject(new Error("That photo couldn't be read. Try a different one."));
+      };
+      image.src = source;
+    });
+  }
+
+  function onPhotoPicked(event) {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.type.indexOf("image/") !== 0) {
+      els.previewNote.textContent = "That file isn't a photo. Choose a JPEG or PNG.";
+      return;
+    }
+    if (file.size > PHOTO_MAX_BYTES) {
+      els.previewNote.textContent = "That photo is too large. Choose one under 30 MB.";
+      return;
+    }
+    releasePreview();
+    state.pendingImage = file;
+    state.previewUrl = URL.createObjectURL(file);
+    els.pImage.value = "";
+    els.imageClearBtn.hidden = false;
+    updatePreview();
+  }
+
+  function onPhotoClear() {
+    releasePreview();
+    state.pendingImage = null;
+    els.pImage.value = "";
+    els.imageClearBtn.hidden = true;
+    updatePreview();
+  }
+
+  function resetPhoto() {
+    releasePreview();
+    state.pendingImage = null;
+    state.savedImageUrl = "";
+    els.pImageFile.value = "";
+    els.imageClearBtn.hidden = true;
   }
 
   function openProduct(product) {
     state.editingId = product ? product.id : null;
     els.productForm.reset();
     els.productError.hidden = true;
+    resetPhoto();
     els.productTitle.textContent = product ? "Edit listing" : "New listing";
     els.saveBtn.textContent = product ? "Save changes" : "Publish listing";
 
@@ -510,13 +603,14 @@
       els.pCategory.value = product.category;
       els.pPrice.value = String(product.price);
       els.pStock.value = String(product.stock);
-      els.pImage.value = product.image_url;
+      els.pImage.value = product.image_url || "";
       els.pDesc.value = product.description;
       els.pActive.checked = product.active;
+      state.savedImageUrl = product.image_url || "";
+      els.imageClearBtn.hidden = !product.image_url;
     } else {
       els.pActive.checked = true;
       els.pCategory.value = "";
-      els.pActive.checked = true;
     }
 
     updatePreview();
@@ -542,7 +636,7 @@
     const category = String(data.get("category") || "").trim();
     const price = Number(data.get("price"));
     const stock = Number(data.get("stock"));
-    const imageUrl = String(data.get("image_url") || "").trim();
+    let imageUrl = String(data.get("image_url") || "").trim();
     const description = String(data.get("description") || "").trim();
     const active = els.pActive.checked;
 
@@ -561,19 +655,42 @@
       return;
     }
 
-    const payload = {
-      name,
-      category,
-      description,
-      price,
-      stock,
-      image_url: imageUrl,
-      active,
-    };
-
+    let uploadedNow = false;
     els.saveBtn.disabled = true;
-    els.saveBtn.textContent = "Saving…";
+    els.saveBtn.textContent = state.pendingImage ? "Uploading photo…" : "Saving…";
     try {
+      if (state.pendingImage) {
+        let blob = null;
+        try {
+          blob = await shrinkPhoto(state.pendingImage);
+        } catch (err) {
+          showProductError(err.message || "That photo couldn't be read. Try a different one.");
+          return;
+        }
+        try {
+          imageUrl = await store.uploadProductImage(blob);
+          uploadedNow = true;
+        } catch (err) {
+          showProductProblem(
+            store.problem("admin.listing_image", err, {
+              message: "The photo didn't upload. Check your internet and try again.",
+            })
+          );
+          return;
+        }
+        els.saveBtn.textContent = "Saving…";
+      }
+
+      const payload = {
+        name,
+        category,
+        description,
+        price,
+        stock,
+        image_url: imageUrl,
+        active,
+      };
+
       if (state.editingId) {
         const saved = await store.updateProduct(state.editingId, payload);
         const index = state.products.findIndex((product) => product.id === saved.id);
@@ -585,9 +702,17 @@
         state.products.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         toast("New listing published");
       }
+
+      const previous = state.savedImageUrl;
+      if (previous && previous !== imageUrl) {
+        store.removeProductImage(previous).catch(function () {});
+      }
+      state.savedImageUrl = imageUrl;
+      resetPhoto();
       renderAll();
       closeDialog(els.productLayer);
     } catch (err) {
+      if (uploadedNow) store.removeProductImage(imageUrl).catch(function () {});
       showProductProblem(
         store.problem("admin.listing_save", err, { message: "The listing didn't save. Please try again." })
       );
@@ -609,10 +734,14 @@
   async function confirmDelete() {
     if (!state.pendingDelete) return;
     const id = state.pendingDelete;
+    const product = byId(id);
     els.confirmDeleteBtn.disabled = true;
     els.confirmDeleteBtn.textContent = "Removing…";
     try {
       await store.deleteProduct(id);
+      if (product && product.image_url) {
+        store.removeProductImage(product.image_url).catch(function () {});
+      }
       state.products = state.products.filter((product) => product.id !== id);
       state.pendingDelete = null;
       renderAll();
@@ -778,6 +907,8 @@
     );
 
     els.pImage.addEventListener("input", ui.debounce(updatePreview, 250));
+    els.pImageFile.addEventListener("change", onPhotoPicked);
+    els.imageClearBtn.addEventListener("click", onPhotoClear);
 
     els.body.addEventListener("click", (event) => {
       const edit = event.target.closest("[data-edit]");
@@ -938,6 +1069,8 @@
     els.pPrice = document.getElementById("pPrice");
     els.pStock = document.getElementById("pStock");
     els.pImage = document.getElementById("pImage");
+    els.pImageFile = document.getElementById("pImageFile");
+    els.imageClearBtn = document.getElementById("imageClearBtn");
     els.pDesc = document.getElementById("pDesc");
     els.pActive = document.getElementById("pActive");
     els.previewFrame = document.getElementById("imagePreviewFrame");

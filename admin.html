@@ -339,11 +339,31 @@
             </div>
 
             <div class="field">
-              <label for="pImage">Image URL</label>
-              <input id="pImage" name="image_url" type="text" placeholder="assets/reed-diffuser.png" spellcheck="false" />
-              <div class="thumb-preview">
-                <div class="thumb-preview__img" id="imagePreviewFrame"></div>
-                <p id="imagePreviewNote">Paste an image link. Leave empty to use the soft placeholder.</p>
+              <span class="label">Photo</span>
+              <div class="photo-picker">
+                <div class="photo-picker__preview" id="imagePreviewFrame" aria-hidden="true"></div>
+                <div class="photo-picker__body">
+                  <div class="photo-picker__actions">
+                    <label class="btn btn--outline btn--sm" for="pImageFile">Choose photo</label>
+                    <input id="pImageFile" type="file" accept="image/*" hidden />
+                    <button class="btn btn--ghost btn--sm" type="button" id="imageClearBtn" hidden>
+                      Remove
+                    </button>
+                  </div>
+                  <p class="hint" id="imagePreviewNote" aria-live="polite">
+                    Take a photo or choose one from your gallery — it uploads when you save.
+                  </p>
+                  <details class="photo-link">
+                    <summary>Use an image link instead</summary>
+                    <input
+                      id="pImage"
+                      name="image_url"
+                      type="text"
+                      placeholder="assets/reed-diffuser.png"
+                      spellcheck="false"
+                    />
+                  </details>
+                </div>
               </div>
             </div>
 

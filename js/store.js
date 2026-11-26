@@ -8,6 +8,7 @@
   const SESSION_KEY = "sf.admin.session";
   const LOG_KEY = "sf.logs.v1";
   const LOG_LIMIT = 100;
+  const IMAGE_BUCKET = "product-images";
   const ORDER_STATUSES = ["new", "paid", "processed"];
 
   /* Plain-language copy. Customers only ever see the `shop` set; the `admin`
@@ -166,6 +167,19 @@
   function newId() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
     return "p-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function readAsDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        resolve(String(reader.result));
+      };
+      reader.onerror = function () {
+        reject(new Error("This browser couldn't read that photo."));
+      };
+      reader.readAsDataURL(blob);
+    });
   }
 
   function normaliseOrder(row) {
@@ -510,6 +524,43 @@
       }
       const rows = readLocal().filter((row) => row.id !== id);
       writeLocal(rows);
+      return true;
+    },
+
+    /* Uploads a photo the admin picked from the phone. Live mode stores it in
+       the public product-images bucket and returns its link; demo mode keeps
+       the picture in this browser as a data URL. */
+    async uploadProductImage(blob) {
+      if (this.mode === "live") {
+        const ext = blob.type === "image/png" ? "png" : "jpg";
+        const path = "products/" + Date.now() + "-" + newId().slice(0, 8) + "." + ext;
+        const { error } = await this.liveClient()
+          .storage.from(IMAGE_BUCKET)
+          .upload(path, blob, {
+            cacheControl: "31536000",
+            contentType: blob.type || "image/jpeg",
+            upsert: false,
+          });
+        if (error) throw error;
+        const { data } = this.liveClient().storage.from(IMAGE_BUCKET).getPublicUrl(path);
+        return data.publicUrl;
+      }
+
+      return readAsDataUrl(blob);
+    },
+
+    /* Removes a photo this page uploaded, so replaced listings don't leave
+       files behind. Links from elsewhere (assets/, other hosts) are ignored. */
+    async removeProductImage(url) {
+      const text = String(url || "");
+      if (this.mode !== "live") return false;
+      const marker = "/storage/v1/object/public/" + IMAGE_BUCKET + "/";
+      const index = text.indexOf(marker);
+      if (index === -1) return false;
+      const path = decodeURIComponent(text.slice(index + marker.length).split("?")[0]);
+      if (!path) return false;
+      const { error } = await this.liveClient().storage.from(IMAGE_BUCKET).remove([path]);
+      if (error) throw error;
       return true;
     },
 

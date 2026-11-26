@@ -14,6 +14,7 @@ create table if not exists public.products (
 );
 
 create index if not exists products_created_at_idx on public.products (created_at);
+create index if not exists products_active_idx on public.products (active);
 
 -- Customers can read the shop; only signed-in admins can change it.
 alter table public.products enable row level security;
@@ -44,7 +45,7 @@ returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
     select 1
@@ -60,26 +61,33 @@ grant select on public.admins to authenticated;
 drop policy if exists "Shop is public" on public.products;
 create policy "Shop is public"
   on public.products for select
-  using (true);
+  to anon
+  using (active);
+
+drop policy if exists "Admin sees every listing" on public.products;
+create policy "Admin sees every listing"
+  on public.products for select
+  to authenticated
+  using (active or (select public.is_admin()));
 
 drop policy if exists "Admin adds listings" on public.products;
 create policy "Admin adds listings"
   on public.products for insert
   to authenticated
-  with check (public.is_admin());
+  with check ((select public.is_admin()));
 
 drop policy if exists "Admin edits listings" on public.products;
 create policy "Admin edits listings"
   on public.products for update
   to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
 
 drop policy if exists "Admin removes listings" on public.products;
 create policy "Admin removes listings"
   on public.products for delete
   to authenticated
-  using (public.is_admin());
+  using ((select public.is_admin()));
 
 grant select on public.products to anon, authenticated;
 grant insert, update, delete on public.products to authenticated;
@@ -142,14 +150,14 @@ drop policy if exists "Admin reads orders" on public.orders;
 create policy "Admin reads orders"
   on public.orders for select
   to authenticated
-  using (public.is_admin());
+  using ((select public.is_admin()));
 
 drop policy if exists "Admin updates orders" on public.orders;
 create policy "Admin updates orders"
   on public.orders for update
   to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
 
 grant insert on public.orders to anon, authenticated;
 grant select, update on public.orders to authenticated;
@@ -185,7 +193,45 @@ drop policy if exists "Admin reads the log" on public.error_logs;
 create policy "Admin reads the log"
   on public.error_logs for select
   to authenticated
-  using (public.is_admin());
+  using ((select public.is_admin()));
 
 grant insert on public.error_logs to anon, authenticated;
 grant select on public.error_logs to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Product photos. The admin picks a picture from the phone's gallery (or the
+-- camera); the page shrinks it and uploads it here, then stores the public
+-- link in products.image_url. The bucket is public so the shop can show the
+-- photos, but only the admin account may add, replace or remove them.
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images', 'product-images', true, 10485760, array['image/jpeg', 'image/png'])
+on conflict (id) do update
+  set public = true,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Shop photos are public" on storage.objects;
+create policy "Shop photos are public"
+  on storage.objects for select
+  using (bucket_id = 'product-images');
+
+drop policy if exists "Admin uploads shop photos" on storage.objects;
+create policy "Admin uploads shop photos"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'product-images' and (select public.is_admin()));
+
+drop policy if exists "Admin updates shop photos" on storage.objects;
+create policy "Admin updates shop photos"
+  on storage.objects for update
+  to authenticated
+  using (bucket_id = 'product-images' and (select public.is_admin()))
+  with check (bucket_id = 'product-images' and (select public.is_admin()));
+
+drop policy if exists "Admin removes shop photos" on storage.objects;
+create policy "Admin removes shop photos"
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'product-images' and (select public.is_admin()));

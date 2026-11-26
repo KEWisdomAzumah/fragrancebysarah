@@ -33,7 +33,8 @@ Store owners manage inventory through a password-protected admin portal that ope
 * **Dual-Mode Storage:** Works immediately via `localStorage` for testing/demoing, or syncs globally across all devices via Supabase PostgreSQL.
 * **Real-Time Inventory Metrics:** At-a-glance counters for total listings, total units in stock, low-stock alerts ($\le 5$ units), and sold-out items.
 * **Inline Stock Controls:** Adjust inventory levels with `-` / `+` steppers or direct numeric input with automatic saving.
-* **Visibility Toggles & CRUD:** Hide out-of-season scents without deleting them, or create, update, and remove listings with custom image URLs.
+* **Visibility Toggles & CRUD:** Hide out-of-season scents without deleting them, or create, update, and remove listings.
+* **Phone Photo Uploads:** Pick a product photo from the camera or gallery. The browser shrinks it and uploads it to the public `product-images` bucket in Supabase Storage; pasting an image URL is still supported as a fallback.
 
 ---
 
@@ -54,5 +55,5 @@ SarahsFragrance/
 │   ├── shop.js         # Storefront rendering, filtering, bag state, and WhatsApp link builder
 │   └── admin.js        # Auth handling, KPI calculations, inline stock updates, and CRUD
 ├── supabase/
-│   └── schema.sql      # PostgreSQL table definitions, Row-Level Security (RLS), and seed data
+│   └── schema.sql      # Tables, Row-Level Security (RLS), product-images storage bucket, and seed data
 └── assets/             # Hero banners and default product photography
