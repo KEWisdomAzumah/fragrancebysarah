@@ -34,6 +34,7 @@
       offline: "Can't reach the server. Check your internet connection and try again.",
       secure: "The secure connection failed. Check the network and the site address, then try again.",
       setup: "The shop database isn't ready yet, so nothing can be loaded or saved.",
+      storage: "Photo storage isn't set up in Supabase yet, so the photo couldn't be saved. Run supabase/schema.sql in the SQL Editor.",
       busy: "Too many attempts in a short time. Wait a moment and try again.",
       forbidden: "This account isn't set up as the shop admin, so it can't open or change the shop. Sign in with Sarah's account.",
       session: "You've been signed out, or this account isn't allowed in. Sign in again to continue.",
@@ -262,6 +263,7 @@
     if (/row-level security|permission denied|insufficient privilege|not authorized/i.test(message)) {
       return "forbidden";
     }
+    if (/bucket not found|nosuchbucket/i.test(message)) return "storage";
     if (/does not exist|schema cache|42P01|PGRST205|could not find the table/i.test(message)) return "setup";
     if (/duplicate key|already exists|23505/i.test(message)) return "duplicate";
     if (/net::err_cert|ssl|certificate|mixed content/i.test(message)) return "secure";
@@ -293,6 +295,9 @@
       bits.push("The server couldn't be reached. Check the network, then the Supabase URL and key in js/config.js.");
     }
     if (kind === "config") bits.push("Check the Supabase URL and public key in js/config.js.");
+    if (kind === "storage") {
+      bits.push("The product-images storage bucket is missing — run supabase/schema.sql in the Supabase SQL Editor.");
+    }
     return bits.join(" · ") || "The server didn't give a reason.";
   }
 
